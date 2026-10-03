@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Script2Video Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-lg">
+          <i class="fa-solid fa-film text-xl text-white"></i>
+        </div>
+        <span class="font-bold text-xl bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+          AI Script2Video Studio
+        </span>
+      </div>
+      <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full font-medium">
+        Vercel Powered
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div class="lg:col-span-7 space-y-6">
+      <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
+        <h2 class="text-lg font-semibold mb-4 flex items-center text-slate-200">
+          <i class="fa-solid fa-pen-nib text-indigo-400 mr-2"></i> Nhập Kịch Bản Phim
+        </h2>
+        <textarea id="scriptInput" rows="5" 
+          class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 focus:outline-none focus:border-indigo-500 transition text-sm placeholder-slate-500"
+          placeholder="Ví dụ: Một góc quay từ xa chiếu thành phố tương lai chìm trong mưa đêm với các tòa nhà chọc trời phát sáng neon..."></textarea>
+        
+        <div class="mt-4 flex items-center justify-between">
+          <p class="text-xs text-slate-400">
+            <i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i> Gemini sẽ tự tạo Visual Prompt điện ảnh.
+          </p>
+          <button id="btnGenerate" onclick="generateVideo()" 
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-2.5 rounded-xl transition flex items-center space-x-2 shadow-lg shadow-indigo-600/20">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Tạo Video Thật</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="statusBox" class="hidden bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
+        <h3 class="text-sm font-semibold text-slate-300 mb-2 flex items-center">
+          <i class="fa-solid fa-terminal text-indigo-400 mr-2"></i> Tiến Độ Xử Lý
+        </h3>
+        <div id="statusText" class="text-xs font-mono text-indigo-300 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1"></div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5 space-y-6">
+      <div class="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-6">
+        <h2 class="text-lg font-semibold mb-4 flex items-center text-slate-200">
+          <i class="fa-solid fa-display text-indigo-400 mr-2"></i> Kết Quả Render
+        </h2>
+        <div id="videoContainer" class="aspect-video bg-slate-950 border border-slate-800 rounded-xl flex flex-col items-center justify-center text-slate-500 p-4">
+          <i class="fa-solid fa-clapperboard text-4xl mb-2 text-slate-700"></i>
+          <p class="text-xs text-center">Chưa có video. Nhập kịch bản và bấm "Tạo Video Thật".</p>
+        </div>
+        <div id="promptUsedBox" class="hidden mt-4 bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-400">
+          <span class="font-bold text-slate-300">Visual Prompt Đã Dùng:</span>
+          <p id="promptText" class="italic mt-1 text-slate-400"></p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    async function generateVideo() {
+      const scriptInput = document.getElementById('scriptInput').value.trim();
+      const btnGenerate = document.getElementById('btnGenerate');
+      const statusBox = document.getElementById('statusBox');
+      const statusText = document.getElementById('statusText');
+      const videoContainer = document.getElementById('videoContainer');
+      const promptUsedBox = document.getElementById('promptUsedBox');
+      const promptText = document.getElementById('promptText');
+
+      if (!scriptInput) {
+        alert('Vui lòng nhập kịch bản trước!');
+        return;
+      }
+
+      btnGenerate.disabled = true;
+      btnGenerate.classList.add('opacity-50', 'cursor-not-allowed');
+      statusBox.classList.remove('hidden');
+      statusText.innerHTML = `<div>[${new Date().toLocaleTimeString()}] Đang gửi kịch bản lên Serverless API...</div>`;
+      
+      videoContainer.innerHTML = `
+        <div class="flex flex-col items-center">
+          <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p class="text-xs text-indigo-400 font-medium">Đang tạo Prompt & gửi lệnh AI...</p>
+        </div>
+      `;
+
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ script: scriptInput })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          statusText.innerHTML += `<div class="text-emerald-400">[${new Date().toLocaleTimeString()}] Thành công! Prompt: "${data.promptUsed}"</div>`;
+          statusText.innerHTML += `<div class="text-indigo-300">[${new Date().toLocaleTimeString()}] Prediction ID: ${data.predictionId}</div>`;
+
+          promptText.innerText = data.promptUsed;
+          promptUsedBox.classList.remove('hidden');
+
+          videoContainer.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fa-solid fa-circle-check text-emerald-400 text-3xl mb-2"></i>
+              <p class="text-sm font-semibold text-slate-200">Đã gửi Task thành công!</p>
+              <p class="text-xs text-slate-400 mt-1">ID: <code class="bg-slate-900 px-1 py-0.5 rounded">${data.predictionId}</code></p>
+              <p class="text-xs text-indigo-400 mt-2">AI đang render video ngầm trên Replicate...</p>
+            </div>
+          `;
+        } else {
+          throw new Error(data.error || 'Lỗi không xác định');
+        }
+
+      } catch (error) {
+        statusText.innerHTML += `<div class="text-rose-400">[${new Date().toLocaleTimeString()}] LỖI: ${error.message}</div>`;
+        videoContainer.innerHTML = `
+          <div class="text-center text-rose-400 p-4">
+            <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+            <p class="text-xs">Tạo video thất bại. Kiểm tra API Key trên Vercel.</p>
+          </div>
+        `;
+      } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+  </script>
+</body>
+</html>
