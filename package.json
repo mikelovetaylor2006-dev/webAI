@@ -2,9 +2,6 @@
   "name": "ai-video-studio",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "start": "vercel dev"
-  },
   "dependencies": {
     "@google/genai": "^0.1.1",
     "replicate": "^0.32.0"
