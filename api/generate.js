@@ -20,15 +20,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Sử dụng model gemini-3.8-flash theo khuyến nghị mới của Google API
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
-
     const promptSystem = `Bạn là một đạo diễn phim AI. Hãy chuyển đổi kịch bản sau thành 1 câu Visual Prompt bằng tiếng Anh chi tiết (góc quay, ánh sáng, 8k, điện ảnh) để đưa vào AI Text-to-Video: "${script}"`;
     
-    const result = await model.generateContent(promptSystem);
-    const response = await result.response;
-    const generatedPrompt = response.text() ? response.text().trim() : script;
+    let generatedPrompt = script; // Default fallback nếu Gemini lỗi bận
+    
+    // Thử gọi các model Gemini theo thứ tự ưu tiên
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(promptSystem);
+        const response = await result.response;
+        if (response.text()) {
+          generatedPrompt = response.text().trim();
+          break; // Đã lấy được prompt thành công, thoát vòng lặp
+        }
+      } catch (err) {
+        console.warn(`Model ${modelName} gặp lỗi/bận, thử model tiếp theo...`, err.message);
+      }
+    }
 
     // 2. Gửi lệnh sang Replicate API
     const replicate = new Replicate({
