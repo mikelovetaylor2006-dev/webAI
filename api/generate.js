@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   try {
     // 1. Dùng GoogleGenerativeAI phân tích kịch bản
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const promptSystem = `Bạn là một đạo diễn phim AI. Hãy chuyển đổi kịch bản sau thành 1 câu Visual Prompt bằng tiếng Anh chi tiết (góc quay, ánh sáng, 8k, điện ảnh) để đưa vào AI Text-to-Video: "${script}"`;
     
